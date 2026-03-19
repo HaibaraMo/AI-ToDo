@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!-- Project maintained by HaibaraMo -->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办事项 + 工时记录</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 待办事项模块 -->
+        <div class="module-container">
+            <div class="todo-section">
+                <h2 class="section-title">
+                    <span class="icon">✓</span> 我的待办清单
+                </h2>
+                <p class="section-subtitle">让我们高效完成每一天</p>
+                
+                <div class="todo-input-area">
+                    <input type="text" id="todo-input" placeholder="今天要做什么?">
+                    <button id="add-todo">+ 添加任务</button>
+                </div>
+                
+                <div class="priority-selector">
+                    <button class="priority-btn" data-priority="low">低</button>
+                    <button class="priority-btn active" data-priority="medium">中</button>
+                    <button class="priority-btn" data-priority="high">高</button>
+                </div>
+                
+                <div class="todo-stats">
+                    <span class="stat all">全部: <span id="todo-all">0</span></span>
+                    <span class="stat pending">未完成: <span id="todo-pending">0</span></span>
+                    <span class="stat completed">已完成: <span id="todo-completed">0</span></span>
+                    <button id="clear-completed">清空已完成</button>
+                </div>
+                
+                <div id="todo-list" class="todo-list">
+                    <!-- 待办事项将通过JavaScript动态添加 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 工时记录模块 -->
+        <div class="module-container">
+            <div class="time-section">
+                <h2 class="section-title">
+                    <span class="icon">
+                        <img src="计时.png" alt="计时" style="vertical-align: middle; height: 1em;">
+                    </span> 工作时间记录
+                </h2>
+                <p class="section-subtitle">记录并追踪你的工作时间</p>
+                
+                <div class="time-input-area">
+                    <input type="text" id="time-input" placeholder="输入工作名称...">
+                    <button id="add-time">+ 添加工作</button>
+                </div>
+                
+                <div class="time-date">今天</div>
+                
+                <div id="time-list" class="time-list">
+                    <!-- 工时记录将通过JavaScript动态添加 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
