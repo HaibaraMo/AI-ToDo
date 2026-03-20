@@ -625,41 +625,96 @@ function addTimeRecord() {
     }
 }
 
-function startTimer(id) {
+// 恢复计时器（用于页面加载时）
+function resumeTimer(id) {
     const timeRecord = timeRecords.find(record => record.id === id);
-    if (timeRecord && (timeRecord.status === 'idle' || timeRecord.status === 'paused')) {
-        const originalStatus = timeRecord.status;
-        timeRecord.status = 'running';
-        if (originalStatus === 'idle') {
-            // 初始状态，设置开始时间
-            timeRecord.startTime = new Date().toISOString();
-        } else {
-            // 暂停状态，继续计时，需要调整开始时间以保持累计时长
-            const pausedDuration = timeRecord.duration;
-            timeRecord.startTime = new Date(Date.now() - (pausedDuration * 1000)).toISOString();
+    if (timeRecord && timeRecord.status === 'running') {
+        // 从localStorage加载的running状态，需要重新计算开始时间
+        const currentDuration = timeRecord.duration || 0;
+        timeRecord.startTime = new Date(Date.now() - (currentDuration * 1000)).toISOString();
+        
+        // 清除可能存在的旧计时器
+        if (timers[id]) {
+            clearInterval(timers[id]);
         }
-        timeRecord.endTime = null;
         
         // 启动计时器
         timers[id] = setInterval(() => {
             const startTime = new Date(timeRecord.startTime).getTime();
             const currentTime = new Date().getTime();
             timeRecord.duration = Math.floor((currentTime - startTime) / 1000);
-            renderTimeRecords();
+            
+            // 只更新当前计时的时间文本，不重新渲染整个列表，保持悬浮状态
+            const timeItem = document.querySelector(`[onclick="startTimer('${id}')"]`)?.closest('.time-item');
+            if (timeItem) {
+                const durationElement = timeItem.querySelector('.time-duration');
+                if (durationElement) {
+                    durationElement.textContent = formatDuration(timeRecord.duration);
+                }
+            }
+            
+            saveData(); // 定期保存数据，避免刷新页面后时间丢失
         }, 1000);
         
-        saveData();
         renderTimeRecords();
-    } else if (timeRecord && timeRecord.status === 'running') {
-        // 暂停计时器
-        clearInterval(timers[id]);
-        timeRecord.status = 'paused'; // 改为paused状态
-        const startTime = new Date(timeRecord.startTime).getTime();
-        const currentTime = new Date().getTime();
-        timeRecord.duration = Math.floor((currentTime - startTime) / 1000);
-        
-        saveData();
-        renderTimeRecords();
+    }
+}
+
+// 开始/暂停/继续计时器（用于用户点击）
+function startTimer(id) {
+    const timeRecord = timeRecords.find(record => record.id === id);
+    if (timeRecord) {
+        if (timeRecord.status === 'running' && timers[id]) {
+            // 当前是运行状态，点击按钮暂停
+            clearInterval(timers[id]);
+            timeRecord.status = 'paused';
+            const startTime = new Date(timeRecord.startTime).getTime();
+            const currentTime = new Date().getTime();
+            timeRecord.duration = Math.floor((currentTime - startTime) / 1000);
+            
+            saveData();
+            renderTimeRecords();
+        } else if (timeRecord.status === 'idle' || timeRecord.status === 'paused') {
+            // 空闲或暂停状态，点击按钮开始/继续计时
+            if (timeRecord.status === 'idle') {
+                // 初始状态，设置开始时间
+                timeRecord.startTime = new Date().toISOString();
+                timeRecord.duration = 0;
+            } else if (timeRecord.status === 'paused') {
+                // 暂停状态，继续计时，需要调整开始时间以保持累计时长
+                const pausedDuration = timeRecord.duration;
+                timeRecord.startTime = new Date(Date.now() - (pausedDuration * 1000)).toISOString();
+            }
+            
+            timeRecord.status = 'running';
+            timeRecord.endTime = null;
+            
+            // 清除可能存在的旧计时器
+            if (timers[id]) {
+                clearInterval(timers[id]);
+            }
+            
+            // 启动计时器
+            timers[id] = setInterval(() => {
+                const startTime = new Date(timeRecord.startTime).getTime();
+                const currentTime = new Date().getTime();
+                timeRecord.duration = Math.floor((currentTime - startTime) / 1000);
+                
+                // 只更新当前计时的时间文本，不重新渲染整个列表，保持悬浮状态
+                const timeItem = document.querySelector(`[onclick="startTimer('${id}')"]`)?.closest('.time-item');
+                if (timeItem) {
+                    const durationElement = timeItem.querySelector('.time-duration');
+                    if (durationElement) {
+                        durationElement.textContent = formatDuration(timeRecord.duration);
+                    }
+                }
+                
+                saveData(); // 定期保存数据，避免刷新页面后时间丢失
+            }, 1000);
+            
+            saveData();
+            renderTimeRecords();
+        }
     }
 }
 
@@ -1150,12 +1205,14 @@ function saveData() {
     localStorage.setItem('todos', JSON.stringify(todos));
     localStorage.setItem('timeRecords', JSON.stringify(timeRecords));
     localStorage.setItem('cycleTasks', JSON.stringify(cycleTasks));
+    localStorage.setItem('lastReminderTimes', JSON.stringify(lastReminderTimes));
 }
 
 function loadData() {
     const savedTodos = localStorage.getItem('todos');
     const savedTimeRecords = localStorage.getItem('timeRecords');
     const savedCycleTasks = localStorage.getItem('cycleTasks');
+    const savedLastReminderTimes = localStorage.getItem('lastReminderTimes');
     
     if (savedTodos) {
         todos = JSON.parse(savedTodos);
@@ -1166,13 +1223,18 @@ function loadData() {
         // 恢复计时器
         timeRecords.forEach(record => {
             if (record.status === 'running') {
-                record.status = 'ended';
+                // 重新启动计时器，继续计时
+                resumeTimer(record.id);
             }
         });
     }
     
     if (savedCycleTasks) {
         cycleTasks = JSON.parse(savedCycleTasks);
+    }
+    
+    if (savedLastReminderTimes) {
+        lastReminderTimes = JSON.parse(savedLastReminderTimes);
     }
 }
 
