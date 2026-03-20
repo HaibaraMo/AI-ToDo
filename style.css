@@ -16,9 +16,82 @@ body {
     max-width: 1200px;
     margin: 30px auto;
     padding: 0 20px;
+}
+
+/* 标签页容器 */
+.tab-container {
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+/* 标签页导航 */
+.tab-nav {
+    display: flex;
+    border-bottom: 2px solid #e9ecef;
+    background-color: #f8f9fa;
+}
+
+.tab-btn {
+    padding: 16px 32px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: #6c757d;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.tab-btn:hover {
+    color: #007bff;
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.tab-btn.active {
+    color: #007bff;
+    background-color: #fff;
+}
+
+.tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #007bff;
+}
+
+/* 标签页内容 */
+.tab-content {
+    display: none;
+    padding: 24px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 主内容区域 */
+.main-content {
     display: flex;
     gap: 24px;
     flex-wrap: wrap;
+}
+
+/* 周期提醒内容区域 */
+.cycle-content {
+    display: flex;
+    gap: 24px;
+}
+
+/* 全宽模块 */
+.module-container.full-width {
+    width: 100%;
+    min-width: 100%;
 }
 
 /* 模块容器 */
@@ -31,14 +104,16 @@ body {
 
 /* 确保模块高度一致 */
 .todo-section,
-.time-section {
+.time-section,
+.cycle-section {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
 .todo-list,
-.time-list {
+.time-list,
+.cycle-list {
     flex: 1;
     overflow-y: auto;
     min-height: 300px;
@@ -58,6 +133,10 @@ body {
 
 .time-section .section-title {
     color: #11aa47;
+}
+
+.cycle-section .section-title {
+    color: #ff922b;
 }
 
 .section-subtitle {
@@ -469,6 +548,228 @@ body {
     background: rgba(0, 0, 0, 0.05);
 }
 
+/* 周期事务提醒模块 */
+.cycle-section {
+    background-color: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.cycle-input-area {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.cycle-input-area input {
+    flex: 1;
+    padding: 14px 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    font-size: 15px;
+    transition: all 0.25s ease;
+    background-color: #f8f9fa;
+}
+
+.cycle-input-area input:focus {
+    outline: none;
+    border-color: #ff922b;
+    background-color: #fff;
+    box-shadow: 0 0 0 4px rgba(255, 146, 43, 0.15);
+}
+
+.cycle-input-area button {
+    padding: 14px 24px;
+    background-color: #ff922b;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.25s ease;
+}
+
+.cycle-input-area button:hover {
+    background-color: #e67e22;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 146, 43, 0.3);
+}
+
+/* 周期事务设置区域 */
+.cycle-settings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-item label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+    white-space: nowrap;
+}
+
+.setting-item select,
+.setting-item input[type="time"] {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: white;
+}
+
+.setting-item select:focus,
+.setting-item input[type="time"]:focus {
+    outline: none;
+    border-color: #ff922b;
+    box-shadow: 0 0 0 2px rgba(255, 146, 43, 0.2);
+}
+
+/* 周期事务统计区域 */
+.cycle-stats {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 12px;
+    font-size: 14px;
+    flex-wrap: wrap;
+}
+
+#clear-cycle {
+    margin-left: auto;
+    padding: 6px 14px;
+    background: none;
+    border: none;
+    color: #fa5252;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.25s ease;
+}
+
+#clear-cycle:hover {
+    background-color: #fff5f5;
+}
+
+/* 周期事务列表 */
+.cycle-list {
+    margin-top: 16px;
+}
+
+.cycle-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    border-radius: 12px;
+    margin: 8px 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    background-color: #f8f9fa;
+    border: 2px solid transparent;
+}
+
+.cycle-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    background-color: #fff;
+    border-color: #e9ecef;
+    z-index: 10;
+}
+
+.cycle-item.enabled {
+    background-color: #fff8f0;
+    border-left: 4px solid #ff922b;
+}
+
+.cycle-item.disabled {
+    background-color: #f8f9fa;
+    border-left: 4px solid #adb5bd;
+    opacity: 0.6;
+}
+
+.cycle-item input[type="checkbox"] {
+    margin-right: 14px;
+    transform: scale(1.3);
+    cursor: pointer;
+    accent-color: #ff922b;
+}
+
+.cycle-content {
+    flex: 1;
+    font-size: 15px;
+    color: #212529;
+    font-weight: 450;
+}
+
+.cycle-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cycle-interval {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    background-color: #ffe8cc;
+    color: #d9480f;
+    margin-left: 10px;
+}
+
+.cycle-time-range {
+    font-size: 11px;
+    color: #868e96;
+    margin-left: 10px;
+}
+
+/* 周期事务操作按钮 */
+.cycle-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.cycle-item:hover .cycle-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.cycle-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.cycle-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
 /* 工时记录模块 */
 .time-section {
     background-color: #fff;
@@ -847,6 +1148,62 @@ body {
     
     .time-duration {
         font-size: 24px;
+    }
+    
+    .cycle-input-area {
+        flex-direction: column;
+    }
+    
+    .cycle-input-area input {
+        margin-bottom: 0;
+    }
+    
+    .cycle-input-area button {
+        width: 100%;
+    }
+    
+    .cycle-settings {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .setting-item {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .setting-item select,
+    .setting-item input[type="time"] {
+        flex: 1;
+        margin-left: 8px;
+    }
+    
+    .cycle-stats {
+        gap: 8px;
+    }
+    
+    .cycle-stats .stat {
+        flex: 1;
+        text-align: center;
+        padding: 8px;
+    }
+    
+    #clear-cycle {
+        width: 100%;
+        text-align: center;
+        margin-top: 8px;
+        padding: 8px;
+    }
+    
+    .cycle-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    
+    .cycle-actions {
+        width: 100%;
+        justify-content: flex-end;
     }
 }
 

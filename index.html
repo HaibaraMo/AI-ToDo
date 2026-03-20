@@ -9,57 +9,120 @@
 </head>
 <body>
     <div class="container">
-        <!-- 待办事项模块 -->
-        <div class="module-container">
-            <div class="todo-section">
-                <h2 class="section-title">
-                    <span class="icon">✓</span> 我的待办清单
-                </h2>
-                <p class="section-subtitle">让我们高效完成每一天</p>
-                
-                <div class="todo-input-area">
-                    <input type="text" id="todo-input" placeholder="今天要做什么?">
-                    <button id="add-todo">+ 添加任务</button>
-                </div>
-                
-                <div class="priority-selector">
-                    <button class="priority-btn" data-priority="low">低</button>
-                    <button class="priority-btn active" data-priority="medium">中</button>
-                    <button class="priority-btn" data-priority="high">高</button>
-                </div>
-                
-                <div class="todo-stats">
-                    <span class="stat all">全部: <span id="todo-all">0</span></span>
-                    <span class="stat pending">未完成: <span id="todo-pending">0</span></span>
-                    <span class="stat completed">已完成: <span id="todo-completed">0</span></span>
-                    <button id="clear-completed">清空已完成</button>
-                </div>
-                
-                <div id="todo-list" class="todo-list">
-                    <!-- 待办事项将通过JavaScript动态添加 -->
+        <!-- 标签页导航 -->
+        <div class="tab-container">
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="main">主功能</button>
+                <button class="tab-btn" data-tab="cycle">周期提醒</button>
+            </div>
+            
+            <!-- 主标签内容 -->
+            <div class="tab-content active" id="main">
+                <div class="main-content">
+                    <!-- 待办事项模块 -->
+                    <div class="module-container">
+                        <div class="todo-section">
+                            <h2 class="section-title">
+                                <span class="icon">✓</span> 我的待办清单
+                            </h2>
+                            <p class="section-subtitle">让我们高效完成每一天</p>
+                            
+                            <div class="todo-input-area">
+                                <input type="text" id="todo-input" placeholder="今天要做什么?">
+                                <button id="add-todo">+ 添加任务</button>
+                            </div>
+                            
+                            <div class="priority-selector">
+                                <button class="priority-btn" data-priority="low">低</button>
+                                <button class="priority-btn active" data-priority="medium">中</button>
+                                <button class="priority-btn" data-priority="high">高</button>
+                            </div>
+                            
+                            <div class="todo-stats">
+                                <span class="stat all">全部: <span id="todo-all">0</span></span>
+                                <span class="stat pending">未完成: <span id="todo-pending">0</span></span>
+                                <span class="stat completed">已完成: <span id="todo-completed">0</span></span>
+                                <button id="clear-completed">清空已完成</button>
+                            </div>
+                            
+                            <div id="todo-list" class="todo-list">
+                                <!-- 待办事项将通过JavaScript动态添加 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 工时记录模块 -->
+                    <div class="module-container">
+                        <div class="time-section">
+                            <h2 class="section-title">
+                                <span class="icon">
+                                    <img src="计时.png" alt="计时" style="vertical-align: middle; height: 1em;">
+                                </span> 工作时间记录
+                            </h2>
+                            <p class="section-subtitle">记录并追踪你的工作时间</p>
+                            
+                            <div class="time-input-area">
+                                <input type="text" id="time-input" placeholder="输入工作名称...">
+                                <button id="add-time">+ 添加工作</button>
+                            </div>
+                            
+                            <div class="time-date">今天</div>
+                            
+                            <div id="time-list" class="time-list">
+                                <!-- 工时记录将通过JavaScript动态添加 -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- 工时记录模块 -->
-        <div class="module-container">
-            <div class="time-section">
-                <h2 class="section-title">
-                    <span class="icon">
-                        <img src="计时.png" alt="计时" style="vertical-align: middle; height: 1em;">
-                    </span> 工作时间记录
-                </h2>
-                <p class="section-subtitle">记录并追踪你的工作时间</p>
-                
-                <div class="time-input-area">
-                    <input type="text" id="time-input" placeholder="输入工作名称...">
-                    <button id="add-time">+ 添加工作</button>
-                </div>
-                
-                <div class="time-date">今天</div>
-                
-                <div id="time-list" class="time-list">
-                    <!-- 工时记录将通过JavaScript动态添加 -->
+            
+            <!-- 周期提醒标签内容 -->
+            <div class="tab-content" id="cycle">
+                <div class="cycle-content">
+                    <div class="module-container full-width">
+                        <div class="cycle-section">
+                            <h2 class="section-title">
+                                <span class="icon">🔔</span> 周期事务提醒
+                            </h2>
+                            <p class="section-subtitle">设置每日重复的提醒事项</p>
+                            
+                            <div class="cycle-input-area">
+                                <input type="text" id="cycle-input" placeholder="添加周期事务，如：喝水、眺望远方">
+                                <button id="add-cycle">+ 添加事务</button>
+                            </div>
+                            
+                            <div class="cycle-settings">
+                                <div class="setting-item">
+                                    <label>提醒间隔:</label>
+                                    <select id="cycle-interval">
+                                        <option value="15">15分钟</option>
+                                        <option value="30" selected>30分钟</option>
+                                        <option value="60">1小时</option>
+                                        <option value="120">2小时</option>
+                                        <option value="180">3小时</option>
+                                        <option value="240">4小时</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <label>时间范围:</label>
+                                    <input type="time" id="cycle-start-time" value="09:00">
+                                    <span>至</span>
+                                    <input type="time" id="cycle-end-time" value="18:00">
+                                </div>
+                            </div>
+                            
+                            <div class="cycle-stats">
+                                <span class="stat active">全部: <span id="cycle-all">0</span></span>
+                                <span class="stat">启用: <span id="cycle-enabled">0</span></span>
+                                <span class="stat">禁用: <span id="cycle-disabled">0</span></span>
+                                <button id="clear-cycle">清空全部</button>
+                            </div>
+                            
+                            <div id="cycle-list" class="cycle-list">
+                                <!-- 周期事务将通过JavaScript动态添加 -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

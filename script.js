@@ -1,9 +1,11 @@
 // 全局变量
 let todos = [];
 let timeRecords = [];
+let cycleTasks = []; // 新增：周期事务
 let currentPriority = 'medium';
 let currentFilter = 'all'; // 新增：当前筛选状态
 let timers = {};
+let lastReminderTimes = {}; // 新增：存储每个任务的上次提醒时间
 
 // DOM元素
 const todoInput = document.getElementById('todo-input');
@@ -22,11 +24,50 @@ const timeInput = document.getElementById('time-input');
 const addTimeBtn = document.getElementById('add-time');
 const timeList = document.getElementById('time-list');
 
+// 周期事务DOM元素
+const cycleInput = document.getElementById('cycle-input');
+const addCycleBtn = document.getElementById('add-cycle');
+const cycleInterval = document.getElementById('cycle-interval');
+const cycleStartTime = document.getElementById('cycle-start-time');
+const cycleEndTime = document.getElementById('cycle-end-time');
+const cycleList = document.getElementById('cycle-list');
+const cycleAll = document.getElementById('cycle-all');
+const cycleEnabled = document.getElementById('cycle-enabled');
+const cycleDisabled = document.getElementById('cycle-disabled');
+const clearCycleBtn = document.getElementById('clear-cycle');
+
 // 初始化
 function init() {
     console.log('Init function called');
     // 从LocalStorage加载数据
     loadData();
+    
+    // 添加测试周期事务数据
+    if (cycleTasks.length === 0) {
+        cycleTasks = [
+            {
+                id: '1',
+                name: '喝水',
+                interval: 30, // 30分钟
+                startTime: '09:00',
+                endTime: '18:00',
+                enabled: true,
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: '2',
+                name: '眺望远方',
+                interval: 60, // 1小时
+                startTime: '09:00',
+                endTime: '18:00',
+                enabled: true,
+                createdAt: new Date().toISOString()
+            }
+        ];
+        saveData();
+    }
+    
+    console.log('Cycle tasks loaded:', cycleTasks);
     
     // 添加测试数据以便测试标签联想
     if (todos.length === 0) {
@@ -62,6 +103,8 @@ function init() {
     renderTodos();
     // 渲染工时记录
     renderTimeRecords();
+    // 渲染周期事务
+    renderCycleTasks();
     // 绑定事件
     bindEvents();
 }
@@ -94,6 +137,14 @@ function bindEvents() {
     timeInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addTimeRecord();
     });
+    
+    // 周期事务事件
+    addCycleBtn.addEventListener('click', addCycleTask);
+    cycleInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addCycleTask();
+    });
+    
+    clearCycleBtn.addEventListener('click', clearAllCycleTasks);
 }
 
 // 新增：设置筛选状态
@@ -923,15 +974,188 @@ function initExpandedDates() {
     expandedDates.add(today);
 }
 
+// 周期事务功能
+function addCycleTask() {
+    const name = cycleInput.value.trim();
+    if (name) {
+        const interval = parseInt(cycleInterval.value);
+        const startTime = cycleStartTime.value;
+        const endTime = cycleEndTime.value;
+        
+        const cycleTask = {
+            id: Date.now().toString(),
+            name,
+            interval,
+            startTime,
+            endTime,
+            enabled: true,
+            createdAt: new Date().toISOString()
+        };
+        
+        cycleTasks.push(cycleTask);
+        saveData();
+        renderCycleTasks();
+        cycleInput.value = '';
+    }
+}
+
+function renderCycleTasks() {
+    // 清空列表
+    cycleList.innerHTML = '';
+    
+    // 计算统计数据
+    const all = cycleTasks.length;
+    const enabled = cycleTasks.filter(task => task.enabled).length;
+    const disabled = all - enabled;
+    
+    // 更新统计显示
+    cycleAll.textContent = all;
+    cycleEnabled.textContent = enabled;
+    cycleDisabled.textContent = disabled;
+    
+    // 渲染周期事务
+    cycleTasks.forEach(task => {
+        const cycleItem = document.createElement('div');
+        cycleItem.className = `cycle-item ${task.enabled ? 'enabled' : 'disabled'}`;
+        
+        cycleItem.innerHTML = `
+            <input type="checkbox" ${task.enabled ? 'checked' : ''} onchange="toggleCycleTask('${task.id}')">
+            <div class="cycle-content">
+                <div class="cycle-info">
+                    ${task.name}
+                    <span class="cycle-interval">${task.interval}分钟</span>
+                    <span class="cycle-time-range">${task.startTime}-${task.endTime}</span>
+                </div>
+            </div>
+            <div class="cycle-actions">
+                <button class="cycle-btn edit hidden-action" onclick="editCycleTask('${task.id}')"><img src="修改.png" alt="修改" style="width: 20px; height: 20px;"></button>
+                <button class="cycle-btn delete hidden-action" onclick="deleteCycleTask('${task.id}')"><img src="删除.png" alt="删除" style="width: 20px; height: 20px;"></button>
+            </div>
+        `;
+        
+        cycleList.appendChild(cycleItem);
+    });
+}
+
+function toggleCycleTask(id) {
+    cycleTasks = cycleTasks.map(task => {
+        if (task.id === id) {
+            return { ...task, enabled: !task.enabled };
+        }
+        return task;
+    });
+    saveData();
+    renderCycleTasks();
+}
+
+function editCycleTask(id) {
+    const task = cycleTasks.find(t => t.id === id);
+    if (task) {
+        const cycleItem = document.querySelector(`[onchange="toggleCycleTask('${id}')"]`).closest('.cycle-item');
+        const cycleContent = cycleItem.querySelector('.cycle-content');
+        
+        cycleContent.innerHTML = `
+            <input type="text" id="edit-cycle-${id}" value="${task.name}" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 8px;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="flex: 1;">
+                    <label style="font-size: 12px; color: #666;">间隔:</label>
+                    <select id="edit-interval-${id}" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="15" ${task.interval === 15 ? 'selected' : ''}>15分钟</option>
+                        <option value="30" ${task.interval === 30 ? 'selected' : ''}>30分钟</option>
+                        <option value="60" ${task.interval === 60 ? 'selected' : ''}>1小时</option>
+                        <option value="120" ${task.interval === 120 ? 'selected' : ''}>2小时</option>
+                        <option value="180" ${task.interval === 180 ? 'selected' : ''}>3小时</option>
+                        <option value="240" ${task.interval === 240 ? 'selected' : ''}>4小时</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 12px; color: #666;">开始时间:</label>
+                    <input type="time" id="edit-start-${id}" value="${task.startTime}" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 12px; color: #666;">结束时间:</label>
+                    <input type="time" id="edit-end-${id}" value="${task.endTime}" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 8px;">
+                <button onclick="saveCycleTask('${id}')" style="padding: 6px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">保存</button>
+                <button onclick="cancelEditCycleTask('${id}')" style="padding: 6px 12px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+            </div>
+        `;
+    }
+}
+
+function saveCycleTask(id) {
+    const nameInput = document.getElementById(`edit-cycle-${id}`);
+    const intervalInput = document.getElementById(`edit-interval-${id}`);
+    const startInput = document.getElementById(`edit-start-${id}`);
+    const endInput = document.getElementById(`edit-end-${id}`);
+    
+    const name = nameInput.value.trim();
+    const interval = parseInt(intervalInput.value);
+    const startTime = startInput.value;
+    const endTime = endInput.value;
+    
+    if (name) {
+        cycleTasks = cycleTasks.map(task => {
+            if (task.id === id) {
+                return { ...task, name, interval, startTime, endTime };
+            }
+            return task;
+        });
+        saveData();
+        renderCycleTasks();
+    }
+}
+
+function cancelEditCycleTask(id) {
+    renderCycleTasks();
+}
+
+function deleteCycleTask(id) {
+    const cycleItem = document.querySelector(`[onclick="deleteCycleTask('${id}')"]`).closest('.cycle-item');
+    const cycleContent = cycleItem.querySelector('.cycle-content');
+    
+    cycleContent.innerHTML = `
+        <div style="padding: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+            <p style="margin: 0 0 10px 0;">确定要删除这个周期事务吗？</p>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="confirmDeleteCycleTask('${id}')" style="padding: 5px 12px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">确定</button>
+                <button onclick="cancelDeleteCycleTask()" style="padding: 5px 12px; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+            </div>
+        </div>
+    `;
+}
+
+function confirmDeleteCycleTask(id) {
+    cycleTasks = cycleTasks.filter(task => task.id !== id);
+    saveData();
+    renderCycleTasks();
+}
+
+function cancelDeleteCycleTask() {
+    renderCycleTasks();
+}
+
+function clearAllCycleTasks() {
+    if (confirm('确定要清空所有周期事务吗？')) {
+        cycleTasks = [];
+        saveData();
+        renderCycleTasks();
+    }
+}
+
 // 数据持久化
 function saveData() {
     localStorage.setItem('todos', JSON.stringify(todos));
     localStorage.setItem('timeRecords', JSON.stringify(timeRecords));
+    localStorage.setItem('cycleTasks', JSON.stringify(cycleTasks));
 }
 
 function loadData() {
     const savedTodos = localStorage.getItem('todos');
     const savedTimeRecords = localStorage.getItem('timeRecords');
+    const savedCycleTasks = localStorage.getItem('cycleTasks');
     
     if (savedTodos) {
         todos = JSON.parse(savedTodos);
@@ -945,7 +1169,10 @@ function loadData() {
                 record.status = 'ended';
             }
         });
-        saveData();
+    }
+    
+    if (savedCycleTasks) {
+        cycleTasks = JSON.parse(savedCycleTasks);
     }
 }
 
@@ -1039,6 +1266,107 @@ function initInputAutocomplete(inputId) {
     });
 }
 
+// 时间工具函数
+function getCurrentTimeString() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+// 初始化标签页导航
+function initTabNavigation() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            
+            // 移除所有标签页的活动状态
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            // 添加当前标签页的活动状态
+            this.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+}
+
+// 页面加载完成后初始化
+window.onload = function() {
+    console.log('Init function called');
+    init();
+    initTabNavigation();
+};
+
+// 初始化标签页导航
+function initTabNavigation() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            
+            // 移除所有标签页的活动状态
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            // 添加当前标签页的活动状态
+            this.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+}
+
+function isTimeInRange(currentTime, startTime, endTime) {
+    return currentTime >= startTime && currentTime <= endTime;
+}
+
+// 提醒调度功能
+function checkReminders() {
+    const currentTime = getCurrentTimeString();
+    
+    cycleTasks.forEach(task => {
+        if (task.enabled && isTimeInRange(currentTime, task.startTime, task.endTime)) {
+            const now = Date.now();
+            const lastReminder = lastReminderTimes[task.id] || 0;
+            const intervalMs = task.interval * 60 * 1000;
+            
+            if (now - lastReminder >= intervalMs) {
+                sendNotification('周期事务提醒', `该${task.name}了！`);
+                lastReminderTimes[task.id] = now;
+            }
+        }
+    });
+}
+
+// 通知功能
+function requestNotificationPermission() {
+    if ('Notification' in window) {
+        Notification.requestPermission().then(permission => {
+            console.log('Notification permission:', permission);
+        });
+    }
+}
+
+function sendNotification(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, {
+            body: body,
+            icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMkM1LjU4MiAyIDIgNS41ODIgMiAxMGMyIDAgMy41ODIgMiA2IDJoN2MtMiAwLTYuNS0yLTYtNnptNSAxN2MtLjU1MiAwLTEtLjQ0OC0xLTF2LTJjMC0uNTUyLjQ0OC0xIDEtMWgxYzAuNTUyIDAgMS4xLjQ0OCAxLjEgMHYyYzAgLjU1Mi0uNDQ4IDEtMS4xIDF6bS04IDBjLS41NTIgMC0xLS40NDgtMS0xdi0yYzAtLjU1Mi40NDgtMSAxLTFoMWMuNTUyIDAgMS4xLjQ0OCAxLjEgMHYyYzAgLjU1Mi0uNDQ4IDEtMS4xIDF6bTEgMEg0Yy0uNTUyIDAtMS0uNDQ4LTEtMXYtM2MwLS41NTIuNDQ4LTEgMS0xaDFjLjU1MiAwIDEuMS40NDggMS4xIDF2M2MwIC41NTItLjQ0OCAxLTEuMSAxfiIvPjwvc3ZnPg=='
+        });
+    }
+}
+
 // 启动应用
 // 确保所有函数都已定义后再调用init
 window.addEventListener('DOMContentLoaded', init);
+
+// 初始化时请求通知权限
+requestNotificationPermission();
+
+// 每分钟检查一次提醒
+setInterval(checkReminders, 60000);
