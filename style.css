@@ -737,6 +737,17 @@ body {
     margin-left: 10px;
 }
 
+/* 下次提醒时间样式 */
+.cycle-next-reminder {
+    font-size: 11px;
+    color: #495057;
+    margin-left: 10px;
+    font-weight: 500;
+    background-color: #e3f2fd;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
 /* 周期事务操作按钮 */
 .cycle-actions {
     display: flex;

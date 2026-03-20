@@ -144,7 +144,53 @@ function bindEvents() {
         if (e.key === 'Enter') addCycleTask();
     });
     
+    // 时间范围验证事件
+    cycleStartTime.addEventListener('change', validateTimeRange);
+    cycleEndTime.addEventListener('change', validateTimeRange);
+    
+    // 周期事务筛选事件
+    const cycleStats = document.querySelectorAll('.cycle-stats .stat');
+    cycleStats.forEach(stat => {
+        stat.addEventListener('click', function() {
+            // 移除所有标签的active状态
+            cycleStats.forEach(s => s.classList.remove('active'));
+            // 添加当前标签的active状态
+            this.classList.add('active');
+            
+            // 获取筛选类型
+            const filterType = this.textContent.trim().split(':')[0];
+            filterCycleTasks(filterType);
+        });
+    });
+    
     clearCycleBtn.addEventListener('click', clearAllCycleTasks);
+}
+
+// 验证时间范围
+function validateTimeRange() {
+    const startTime = cycleStartTime.value;
+    const endTime = cycleEndTime.value;
+    
+    if (startTime && endTime && endTime <= startTime) {
+        alert('错误：结束时间必须大于开始时间！');
+        // 重置结束时间为开始时间之后的时间
+        const [startHour, startMinute] = startTime.split(':');
+        let endHour = parseInt(startHour);
+        let endMinute = parseInt(startMinute) + 30;
+        
+        if (endMinute >= 60) {
+            endHour += 1;
+            endMinute -= 60;
+        }
+        
+        if (endHour >= 24) {
+            endHour = 23;
+            endMinute = 59;
+        }
+        
+        const newEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+        cycleEndTime.value = newEndTime;
+    }
 }
 
 // 新增：设置筛选状态
@@ -1037,6 +1083,12 @@ function addCycleTask() {
         const startTime = cycleStartTime.value;
         const endTime = cycleEndTime.value;
         
+        // 验证结束时间是否大于开始时间
+        if (endTime <= startTime) {
+            alert('错误：结束时间必须大于开始时间！');
+            return;
+        }
+        
         const cycleTask = {
             id: Date.now().toString(),
             name,
@@ -1054,6 +1106,25 @@ function addCycleTask() {
     }
 }
 
+// 计算下次提醒时间
+function getNextReminderTime(task) {
+    const lastReminder = lastReminderTimes[task.id] || Date.now();
+    const intervalMs = task.interval * 60 * 1000;
+    const nextReminder = lastReminder + intervalMs;
+    return nextReminder;
+}
+
+// 格式化时间为年月日时分
+function formatDateTime(timestamp) {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
 function renderCycleTasks() {
     // 清空列表
     cycleList.innerHTML = '';
@@ -1068,10 +1139,22 @@ function renderCycleTasks() {
     cycleEnabled.textContent = enabled;
     cycleDisabled.textContent = disabled;
     
+    // 根据筛选条件过滤任务
+    let filteredTasks = cycleTasks;
+    if (currentCycleFilter === '启用') {
+        filteredTasks = cycleTasks.filter(task => task.enabled);
+    } else if (currentCycleFilter === '禁用') {
+        filteredTasks = cycleTasks.filter(task => !task.enabled);
+    }
+    
     // 渲染周期事务
-    cycleTasks.forEach(task => {
+    filteredTasks.forEach(task => {
         const cycleItem = document.createElement('div');
         cycleItem.className = `cycle-item ${task.enabled ? 'enabled' : 'disabled'}`;
+        
+        // 计算下次提醒时间
+        const nextReminderTime = task.enabled ? getNextReminderTime(task) : null;
+        const nextReminderText = nextReminderTime ? formatDateTime(nextReminderTime) : '未启用';
         
         cycleItem.innerHTML = `
             <input type="checkbox" ${task.enabled ? 'checked' : ''} onchange="toggleCycleTask('${task.id}')">
@@ -1080,6 +1163,7 @@ function renderCycleTasks() {
                     ${task.name}
                     <span class="cycle-interval">${task.interval}分钟</span>
                     <span class="cycle-time-range">${task.startTime}-${task.endTime}</span>
+                    <span class="cycle-next-reminder">下次提醒: ${nextReminderText}</span>
                 </div>
             </div>
             <div class="cycle-actions">
@@ -1101,6 +1185,16 @@ function toggleCycleTask(id) {
     });
     saveData();
     renderCycleTasks();
+    
+    // 更新筛选标签的active状态
+    const cycleStats = document.querySelectorAll('.cycle-stats .stat');
+    cycleStats.forEach(stat => {
+        if (stat.textContent.trim().startsWith(currentCycleFilter)) {
+            stat.classList.add('active');
+        } else {
+            stat.classList.remove('active');
+        }
+    });
 }
 
 function editCycleTask(id) {
@@ -1115,12 +1209,16 @@ function editCycleTask(id) {
                 <div style="flex: 1;">
                     <label style="font-size: 12px; color: #666;">间隔:</label>
                     <select id="edit-interval-${id}" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="1">1分钟</option>
+                        <option value="5">5分钟</option>
                         <option value="15" ${task.interval === 15 ? 'selected' : ''}>15分钟</option>
                         <option value="30" ${task.interval === 30 ? 'selected' : ''}>30分钟</option>
                         <option value="60" ${task.interval === 60 ? 'selected' : ''}>1小时</option>
                         <option value="120" ${task.interval === 120 ? 'selected' : ''}>2小时</option>
                         <option value="180" ${task.interval === 180 ? 'selected' : ''}>3小时</option>
                         <option value="240" ${task.interval === 240 ? 'selected' : ''}>4小时</option>
+                        <option value="480" ${task.interval === 480 ? 'selected' : ''}>8小时</option>
+                        <option value="720" ${task.interval === 720 ? 'selected' : ''}>12小时</option>
                     </select>
                 </div>
                 <div style="flex: 1;">
@@ -1137,7 +1235,55 @@ function editCycleTask(id) {
                 <button onclick="cancelEditCycleTask('${id}')" style="padding: 6px 12px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">取消</button>
             </div>
         `;
+        
+        // 为编辑表单的时间输入框添加事件监听器
+        const startTimeInput = document.getElementById(`edit-start-${id}`);
+        const endTimeInput = document.getElementById(`edit-end-${id}`);
+        
+        if (startTimeInput && endTimeInput) {
+            startTimeInput.addEventListener('change', function() {
+                validateEditTimeRange(id);
+            });
+            endTimeInput.addEventListener('change', function() {
+                validateEditTimeRange(id);
+            });
+        }
     }
+}
+
+// 验证编辑表单的时间范围
+function validateEditTimeRange(id) {
+    const startTime = document.getElementById(`edit-start-${id}`).value;
+    const endTime = document.getElementById(`edit-end-${id}`).value;
+    
+    if (startTime && endTime && endTime <= startTime) {
+        alert('错误：结束时间必须大于开始时间！');
+        // 重置结束时间为开始时间之后的时间
+        const [startHour, startMinute] = startTime.split(':');
+        let endHour = parseInt(startHour);
+        let endMinute = parseInt(startMinute) + 30;
+        
+        if (endMinute >= 60) {
+            endHour += 1;
+            endMinute -= 60;
+        }
+        
+        if (endHour >= 24) {
+            endHour = 23;
+            endMinute = 59;
+        }
+        
+        const newEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+        document.getElementById(`edit-end-${id}`).value = newEndTime;
+    }
+}
+
+// 筛选周期事务
+let currentCycleFilter = '全部';
+
+function filterCycleTasks(filterType) {
+    currentCycleFilter = filterType;
+    renderCycleTasks();
 }
 
 function saveCycleTask(id) {
@@ -1150,6 +1296,12 @@ function saveCycleTask(id) {
     const interval = parseInt(intervalInput.value);
     const startTime = startInput.value;
     const endTime = endInput.value;
+    
+    // 验证结束时间是否大于开始时间
+    if (endTime <= startTime) {
+        alert('错误：结束时间必须大于开始时间！');
+        return;
+    }
     
     if (name) {
         cycleTasks = cycleTasks.map(task => {
@@ -1235,6 +1387,9 @@ function loadData() {
     
     if (savedLastReminderTimes) {
         lastReminderTimes = JSON.parse(savedLastReminderTimes);
+        console.log('上次提醒时间记录:', lastReminderTimes);
+    } else {
+        console.log('没有上次提醒时间记录');
     }
 }
 
@@ -1336,6 +1491,14 @@ function getCurrentTimeString() {
     return `${hours}:${minutes}`;
 }
 
+// 从时间戳获取时间字符串（HH:MM格式）
+function getCurrentTimeStringFromTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
 // 初始化标签页导航
 function initTabNavigation() {
     const tabBtns = document.querySelectorAll('.tab-btn');
@@ -1394,12 +1557,38 @@ function checkReminders() {
     cycleTasks.forEach(task => {
         if (task.enabled && isTimeInRange(currentTime, task.startTime, task.endTime)) {
             const now = Date.now();
-            const lastReminder = lastReminderTimes[task.id] || 0;
+            // 如果没有上次提醒时间，设置为当前时间减去一个随机值，避免所有任务同时提醒
+            let lastReminder = lastReminderTimes[task.id];
+            if (!lastReminder) {
+                lastReminder = now;
+                lastReminderTimes[task.id] = lastReminder;
+                saveData(); // 保存初始提醒时间
+            }
             const intervalMs = task.interval * 60 * 1000;
             
             if (now - lastReminder >= intervalMs) {
                 sendNotification('周期事务提醒', `该${task.name}了！`);
-                lastReminderTimes[task.id] = now;
+                
+                // 更新上次提醒时间
+                let newLastReminder = now;
+                
+                // 检查下次提醒时间是否超过当天时间范围
+                const nextReminder = newLastReminder + intervalMs;
+                const nextReminderTimeStr = getCurrentTimeStringFromTimestamp(nextReminder);
+                
+                // 如果下次提醒时间不在时间范围内，将上次提醒时间设置为第二天开始时间
+                if (!isTimeInRange(nextReminderTimeStr, task.startTime, task.endTime)) {
+                    // 计算第二天的开始时间
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const [startHour, startMinute] = task.startTime.split(':');
+                    tomorrow.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
+                    newLastReminder = tomorrow.getTime();
+                }
+                
+                lastReminderTimes[task.id] = newLastReminder;
+                saveData(); // 保存上次提醒时间到localStorage
+                renderCycleTasks(); // 更新下次提醒时间显示
             }
         }
     });
