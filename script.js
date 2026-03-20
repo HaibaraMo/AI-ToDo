@@ -229,6 +229,11 @@ function addTodo() {
         saveData();
         renderTodos();
         todoInput.value = '';
+        // 清除提示
+        removeInputHint(addTodoBtn);
+    } else {
+        // 显示提示
+        showInputHint(addTodoBtn, '请在输入框输入内容！');
     }
 }
 
@@ -668,6 +673,11 @@ function addTimeRecord() {
         saveData();
         renderTimeRecords();
         timeInput.value = '';
+        // 清除提示
+        removeInputHint(addTimeBtn);
+    } else {
+        // 显示提示
+        showInputHint(addTimeBtn, '请在输入框输入内容！');
     }
 }
 
@@ -1103,6 +1113,11 @@ function addCycleTask() {
         saveData();
         renderCycleTasks();
         cycleInput.value = '';
+        // 清除提示
+        removeInputHint(addCycleBtn);
+    } else {
+        // 显示提示
+        showInputHint(addCycleBtn, '请在输入框输入内容！');
     }
 }
 
@@ -1275,6 +1290,48 @@ function validateEditTimeRange(id) {
         
         const newEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
         document.getElementById(`edit-end-${id}`).value = newEndTime;
+    }
+}
+
+// 显示输入提示
+function showInputHint(button, message) {
+    // 先清除已有的提示
+    removeInputHint(button);
+    
+    // 创建提示元素
+    const hint = document.createElement('div');
+    hint.className = 'input-hint';
+    hint.textContent = message;
+    hint.style.position = 'absolute';
+    hint.style.bottom = '100%';
+    hint.style.left = '50%';
+    hint.style.transform = 'translateX(-50%)';
+    hint.style.backgroundColor = '#f44336';
+    hint.style.color = 'white';
+    hint.style.padding = '5px 10px';
+    hint.style.borderRadius = '4px';
+    hint.style.fontSize = '12px';
+    hint.style.marginBottom = '5px';
+    hint.style.zIndex = '1000';
+    
+    // 设置父元素为相对定位，确保提示信息正确显示
+    const parent = button.parentNode;
+    parent.style.position = 'relative';
+    
+    // 添加提示元素
+    parent.appendChild(hint);
+    
+    // 3秒后自动清除提示
+    setTimeout(() => {
+        removeInputHint(button);
+    }, 3000);
+}
+
+// 清除输入提示
+function removeInputHint(button) {
+    const existingHint = button.parentNode.querySelector('.input-hint');
+    if (existingHint) {
+        existingHint.remove();
     }
 }
 
