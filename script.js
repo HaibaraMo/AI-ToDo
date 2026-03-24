@@ -1092,6 +1092,7 @@ function addCycleTask() {
         const interval = parseInt(cycleInterval.value);
         const startTime = cycleStartTime.value;
         const endTime = cycleEndTime.value;
+        const checkinEnabled = document.getElementById('checkin-enabled').checked;
         
         // 验证结束时间是否大于开始时间
         if (endTime <= startTime) {
@@ -1106,6 +1107,8 @@ function addCycleTask() {
             startTime,
             endTime,
             enabled: true,
+            checkinEnabled,
+            checkinCount: 0,
             createdAt: new Date().toISOString()
         };
         
@@ -1113,6 +1116,7 @@ function addCycleTask() {
         saveData();
         renderCycleTasks();
         cycleInput.value = '';
+        document.getElementById('checkin-enabled').checked = false;
         // 清除提示
         removeInputHint(addCycleBtn);
     } else {
@@ -1171,6 +1175,11 @@ function renderCycleTasks() {
         const nextReminderTime = task.enabled ? getNextReminderTime(task) : null;
         const nextReminderText = nextReminderTime ? formatDateTime(nextReminderTime) : '未启用';
         
+        // 生成打卡次数显示
+        const checkinDisplay = task.checkinEnabled ? `
+                    <span class="cycle-checkin">打卡次数: ${task.checkinCount}</span>
+                ` : '';
+        
         cycleItem.innerHTML = `
             <input type="checkbox" ${task.enabled ? 'checked' : ''} onchange="toggleCycleTask('${task.id}')">
             <div class="cycle-content">
@@ -1178,6 +1187,7 @@ function renderCycleTasks() {
                     ${task.name}
                     <span class="cycle-interval">${task.interval}分钟</span>
                     <span class="cycle-time-range">${task.startTime}-${task.endTime}</span>
+                    ${checkinDisplay}
                     <span class="cycle-next-reminder">下次提醒: ${nextReminderText}</span>
                 </div>
             </div>
@@ -1244,6 +1254,9 @@ function editCycleTask(id) {
                     <label style="font-size: 12px; color: #666;">结束时间:</label>
                     <input type="time" id="edit-end-${id}" value="${task.endTime}" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
                 </div>
+            </div>
+            <div style="margin: 8px 0;">
+                <label style="font-size: 12px; color: #666;"><input type="checkbox" id="edit-checkin-${id}" ${task.checkinEnabled ? 'checked' : ''}> 开启打卡计次</label>
             </div>
             <div style="margin-top: 10px; display: flex; gap: 8px;">
                 <button onclick="saveCycleTask('${id}')" style="padding: 6px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">保存</button>
@@ -1348,11 +1361,13 @@ function saveCycleTask(id) {
     const intervalInput = document.getElementById(`edit-interval-${id}`);
     const startInput = document.getElementById(`edit-start-${id}`);
     const endInput = document.getElementById(`edit-end-${id}`);
+    const checkinInput = document.getElementById(`edit-checkin-${id}`);
     
     const name = nameInput.value.trim();
     const interval = parseInt(intervalInput.value);
     const startTime = startInput.value;
     const endTime = endInput.value;
+    const checkinEnabled = checkinInput.checked;
     
     // 验证结束时间是否大于开始时间
     if (endTime <= startTime) {
@@ -1363,7 +1378,7 @@ function saveCycleTask(id) {
     if (name) {
         cycleTasks = cycleTasks.map(task => {
             if (task.id === id) {
-                return { ...task, name, interval, startTime, endTime };
+                return { ...task, name, interval, startTime, endTime, checkinEnabled };
             }
             return task;
         });
@@ -1609,10 +1624,14 @@ function isTimeInRange(currentTime, startTime, endTime) {
 
 // 提醒调度功能
 function checkReminders() {
+    console.log('checkReminders called');
     const currentTime = getCurrentTimeString();
+    console.log('Current time:', currentTime);
     
     cycleTasks.forEach(task => {
+        console.log('Checking task:', task.name, 'enabled:', task.enabled, 'time range:', task.startTime, '-', task.endTime);
         if (task.enabled && isTimeInRange(currentTime, task.startTime, task.endTime)) {
+            console.log('Task is in time range');
             const now = Date.now();
             // 如果没有上次提醒时间，设置为当前时间减去一个随机值，避免所有任务同时提醒
             let lastReminder = lastReminderTimes[task.id];
@@ -1620,11 +1639,16 @@ function checkReminders() {
                 lastReminder = now;
                 lastReminderTimes[task.id] = lastReminder;
                 saveData(); // 保存初始提醒时间
+                console.log('Set initial last reminder time:', lastReminder);
             }
             const intervalMs = task.interval * 60 * 1000;
+            console.log('Interval:', task.interval, 'minutes,', intervalMs, 'ms');
+            console.log('Now:', now, 'Last reminder:', lastReminder, 'Difference:', now - lastReminder);
             
             if (now - lastReminder >= intervalMs) {
-                sendNotification('周期事务提醒', `该${task.name}了！`);
+                console.log('Sending notification for task:', task.name);
+                const message = task.checkinEnabled ? `该${task.name}了！点击通知进行打卡` : `该${task.name}了！`;
+                sendNotification('周期事务提醒', message, task.id);
                 
                 // 更新上次提醒时间
                 let newLastReminder = now;
@@ -1641,11 +1665,13 @@ function checkReminders() {
                     const [startHour, startMinute] = task.startTime.split(':');
                     tomorrow.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
                     newLastReminder = tomorrow.getTime();
+                    console.log('Next reminder out of range, setting for tomorrow:', newLastReminder);
                 }
                 
                 lastReminderTimes[task.id] = newLastReminder;
                 saveData(); // 保存上次提醒时间到localStorage
                 renderCycleTasks(); // 更新下次提醒时间显示
+                console.log('Updated last reminder time:', newLastReminder);
             }
         }
     });
@@ -1660,13 +1686,63 @@ function requestNotificationPermission() {
     }
 }
 
-function sendNotification(title, body) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, {
-            body: body,
-            icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMkM1LjU4MiAyIDIgNS41ODIgMiAxMGMyIDAgMy41ODIgMiA2IDJoN2MtMiAwLTYuNS0yLTYtNnptNSAxN2MtLjU1MiAwLTEtLjQ0OC0xLTF2LTJjMC0uNTUyLjQ0OC0xIDEtMWgxYzAuNTUyIDAgMS4xLjQ0OCAxLjEgMHYyYzAgLjU1Mi0uNDQ4IDEtMS4xIDF6bS04IDBjLS41NTIgMC0xLS40NDgtMS0xdi0yYzAtLjU1Mi40NDgtMSAxLTFoMWMuNTUyIDAgMS4xLjQ0OCAxLjEgMHYyYzAgLjU1Mi0uNDQ4IDEtMS4xIDF6bTEgMEg0Yy0uNTUyIDAtMS0uNDQ4LTEtMXYtM2MwLS41NTIuNDQ4LTEgMS0xaDFjLjU1MiAwIDEuMS40NDggMS4xIDF2M2MwIC41NTItLjQ0OCAxLTEuMSAxfiIvPjwvc3ZnPg=='
-        });
+function sendNotification(title, body, taskId) {
+    console.log('sendNotification called');
+    console.log('Notification supported:', 'Notification' in window);
+    console.log('Notification permission:', Notification.permission);
+    
+    if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+            const task = cycleTasks.find(t => t.id === taskId);
+            console.log('Task found:', task ? task.name : 'No task found');
+            const options = {
+                body: body,
+                icon: '沙漏计时图标.png'
+            };
+            
+            console.log('Notification options:', options);
+            const notification = new Notification(title, options);
+            console.log('Notification created');
+            
+            // 监听通知点击事件
+            notification.onclick = function() {
+                console.log('Notification clicked');
+                if (task && task.checkinEnabled) {
+                    // 执行打卡操作
+                    console.log('Checkin action for task:', task.name);
+                    checkinTask(taskId);
+                }
+                notification.close();
+            };
+        } else if (Notification.permission === 'denied') {
+            console.log('Notification permission denied');
+            alert('通知权限被拒绝，请在浏览器设置中允许通知权限');
+        } else {
+            console.log('Notification permission not granted, requesting...');
+            Notification.requestPermission().then(permission => {
+                console.log('Permission granted:', permission);
+                if (permission === 'granted') {
+                    // 再次尝试发送通知
+                    sendNotification(title, body, taskId);
+                }
+            });
+        }
+    } else {
+        console.log('Notifications not supported in this browser');
+        alert('您的浏览器不支持通知功能');
     }
+}
+
+// 打卡任务
+function checkinTask(taskId) {
+    cycleTasks = cycleTasks.map(task => {
+        if (task.id === taskId) {
+            return { ...task, checkinCount: (task.checkinCount || 0) + 1 };
+        }
+        return task;
+    });
+    saveData();
+    renderCycleTasks();
 }
 
 // 启动应用

@@ -597,6 +597,29 @@ body {
     box-shadow: 0 4px 12px rgba(255, 146, 43, 0.3);
 }
 
+/* 打卡计次选项样式 */
+.cycle-checkin-option {
+    margin-bottom: 16px;
+    padding: 14px;
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.cycle-checkin-option input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.1);
+    accent-color: #ff922b;
+}
+
+.cycle-checkin-option label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+}
+
 /* 周期事务设置区域 */
 .cycle-settings {
     display: flex;
@@ -747,6 +770,19 @@ body {
     padding: 2px 8px;
     border-radius: 12px;
 }
+
+/* 打卡计次样式 */
+.cycle-checkin {
+    font-size: 12px;
+    color: #495057;
+    margin-left: 10px;
+    font-weight: 600;
+    background-color: #fff3bf;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+
 
 /* 周期事务操作按钮 */
 .cycle-actions {
